@@ -10,6 +10,12 @@ app = Flask(__name__)
 CORS(app)
 
 port = int(os.environ.get("PORT", 8080))
+is_server = os.environ.get("IS_SERVER", "False") == "True"
+
+if is_server:
+    BASE_PATH = os.path.join(app.root_path, 'static')
+else:
+    BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
 
 # 폴더 경로 정의
 BASE_PATH = os.path.join(app.root_path, 'static')
