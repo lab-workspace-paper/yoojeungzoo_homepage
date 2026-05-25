@@ -1,0 +1,1038 @@
+/* 화면 분리 및 상태 전환 최적화 */
+#welcome-screen {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100vh !important;
+    width: 100% !important;
+}
+
+#main-dashboard {
+    display: none !important;
+    /* 초기 상태: 대시보드 숨김 */
+    min-height: 100vh !important;
+    width: 100% !important;
+}
+
+/* index_ko.html과 연동되는 스타일시트*/
+:root {
+    --charcoal: #121214;
+    --gold: #d4af37;
+    --gold-soft: rgba(212, 175, 55, 0.15);
+}
+
+html {
+    font-size: 112.5%;
+    /* 기존보다 약 12.5% 글씨를 전체적으로 키움 */
+}
+
+body {
+    background-color: var(--charcoal);
+    color: #e2e8f0;
+    font-family: 'Pretendard', sans-serif;
+    margin: 0;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: none;
+}
+
+h1,
+h2,
+h3,
+.serif {
+    font-family: 'Noto Serif KR', serif;
+}
+
+#main-dashboard {
+    display: none;
+}
+
+#welcome-screen {
+    /* 화면 전체를 꽉 채우지 않고 상하좌우 여백을 확보 */
+    height: 85vh !important;
+    width: 90vw !important;
+    margin: 7.5vh auto !important;
+    /* 상하 7.5vh 여백으로 중앙 정렬 */
+
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+
+    background: radial-gradient(circle at center, #1a1a1e 0%, #121214 100%) !important;
+    border-radius: 20px !important;
+    /* 모서리를 둥글게 하여 더 정돈된 느낌 부여 */
+    padding: 2rem !important;
+    box-sizing: border-box !important;
+}
+
+/* 캐릭터 래퍼의 비율 축소 */
+.character-pure-wrapper {
+    height: 70vh !important;
+    /* 기존보다 축소 */
+    max-height: 400px !important;
+    margin-bottom: 1.5rem !important;
+}
+
+/* 텍스트 그룹의 여백 조정 */
+.welcome-title-gold {
+    font-size: calc(1.8rem + 1vw) !important;
+    /* 글자 크기 소폭 축소 */
+    margin-bottom: 0.5rem !important;
+}
+
+@media (min-width: 1024px) {
+    .character-pure-wrapper {
+        height: 58vh;
+        max-height: 620px;
+        margin-bottom: 2.5rem;
+    }
+}
+
+.character-pure-wrapper img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    max-width: 95%;
+}
+
+.welcome-title-gold {
+    font-size: calc(2.2rem + 1.2vw);
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.03em;
+    line-height: 1.25;
+    word-break: keep-all;
+    text-shadow: 0px 4px 15px rgba(0, 0, 0, 0.7);
+}
+
+@media (min-width: 1024px) {
+    .welcome-title-gold {
+        font-size: 4.8rem;
+        margin-bottom: 1.25rem;
+    }
+}
+
+.btn-continue {
+    padding: 0.95rem 4rem;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    border-radius: 50px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    letter-spacing: 2px;
+    background-color: transparent;
+    font-size: 1.05rem;
+    white-space: nowrap;
+}
+
+@media (min-width: 1024px) {
+    .btn-continue {
+        padding: 1.2rem 5.5rem;
+        font-size: 1.2rem;
+    }
+}
+
+.btn-continue:hover {
+    background-color: var(--gold);
+    color: var(--charcoal);
+    box-shadow: 0 0 25px var(--gold-soft);
+}
+
+.mhw-header {
+    background-color: #1a1a1e;
+    border-bottom: 2px solid var(--gold);
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 50;
+    /* 하단 3줄을 수정하여 상시 노출 상태로 변경 */
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.mhw-header.header-visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.nav-item {
+    padding: 1rem 1.5rem;
+    color: #94a3b8;
+    font-weight: 500;
+    transition: color 0.3s;
+    font-size: 1.05rem;
+    cursor: pointer;
+}
+
+.nav-item:hover {
+    color: var(--gold);
+}
+
+.hero-banner {
+    background: linear-gradient(rgba(18, 18, 20, 0.85), rgba(18, 18, 20, 0.85)), url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80');
+    background-size: cover;
+    background-position: center;
+    padding: 60px 0;
+    border-bottom: 1px solid #2d2d33;
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .hero-banner {
+        padding: 140px 0;
+    }
+}
+
+.grid-card {
+    background-color: #1a1a1e;
+    border: 1px solid #2d2d33;
+    transition: transform 0.3s, border-color 0.3s;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+
+    /* 여기서 padding을 비율로 설정하여 화면 폭에 반응하게 합니다 */
+    padding: 5% 4% !important;
+
+    /* 상하 폭을 채우기 위해 height를 auto 대신 비율로 설정 */
+    min-height: 35vh !important;
+}
+
+.grid-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--gold);
+}
+
+.status-badge {
+    background-color: #000;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: monospace;
+    padding: 0.35rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+#pai-sub-content {
+    border: 1px solid #2d2d33;
+    background-color: #1a1a1e;
+    height: auto;
+    min-height: 0px;
+    box-sizing: border-box;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* academic_papers.html과 연동되는 스타일시트*/
+.sub-page-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    color: #e2e8f0;
+    text-align: left;
+    box-sizing: border-box;
+}
+
+.narrative-section {
+    margin-bottom: 35px;
+}
+
+.sub-title {
+    font-size: 0.85rem !important;
+    color: #d4af37;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.main-heading {
+    font-size: 1.8rem !important;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 20px 0;
+    line-height: 1.4;
+}
+
+.essay-paragraph {
+    font-size: 1rem !important;
+    line-height: 1.75;
+    color: #a0aec0;
+    margin-bottom: 15px;
+    text-align: justify;
+}
+
+.divider {
+    height: 1px;
+    background-color: #2d3748;
+    margin: 40px 0;
+}
+
+.archive-section {
+    width: 100%;
+}
+
+.section-heading {
+    font-size: 1.3rem !important;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 20px 0;
+}
+
+.paper-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid #2d2d33;
+}
+
+.paper-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem !important;
+}
+
+.paper-table th {
+    background-color: #1a1a1e;
+    color: #ffffff;
+    border-bottom: 2px solid #2d2d33;
+    padding: 14px 15px;
+    font-weight: 600;
+    text-align: left;
+}
+
+.paper-table td {
+    padding: 14px 15px;
+    border-bottom: 1px solid #2d2d33;
+    color: #cbd5e1;
+    vertical-align: middle;
+    background-color: #121214;
+}
+
+.paper-table tbody tr {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.paper-table tr:hover td {
+    background-color: #1a1a1e;
+    color: #ffffff;
+}
+
+.secure-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.secure-modal-overlay.modal-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.secure-modal-content {
+    background-color: #1a1a1e;
+    border: 1px solid #2d2d33;
+    width: 90%;
+    max-width: 650px;
+    height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+}
+
+.secure-modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #2d2d33;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #121214;
+}
+
+.secure-modal-title {
+    font-family: 'Noto Serif KR', serif;
+    color: #d4af37;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.secure-modal-close {
+    background: none;
+    border: none;
+    color: #a0aec0;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.secure-modal-body {
+    padding: 20px;
+    overflow-y: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.secure-lens-container {
+    width: 100%;
+    height: 100%;
+    border: 1px solid #2d2d33;
+    background-color: #121214;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+}
+
+.secure-lens-container img {
+    max-width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.blur-secure-curtain {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 30%;
+    background: linear-gradient(to top, rgba(18, 18, 20, 1) 0%, rgba(18, 18, 20, 0.9) 50%, rgba(18, 18, 20, 0) 100%);
+    backdrop-filter: blur(12px) brightness(0.5);
+    -webkit-backdrop-filter: blur(12px) brightness(0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.curtain-text {
+    color: #d4af37;
+    font-size: 0.9rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    padding: 8px 16px;
+    background-color: rgba(0, 0, 0, 0.6);
+    font-family: 'Noto Serif KR', serif;
+}
+
+/* agent_academy.html과 연동되는 스타일시트 */
+.sub-page-container {
+    width: 100%;
+    color: #e2e8f0;
+    text-align: left;
+}
+
+.main-heading {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 20px 0;
+}
+
+.section-heading {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 10px 0;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #2d3748;
+    border: none;
+    color: #fff;
+    box-sizing: border-box;
+}
+
+.submit-btn:hover {
+    background: #b8952f;
+}
+
+/* books_and_essays.html과 연동되는 스타일시트*/
+.sub-title {
+    font-size: 0.85rem !important;
+    color: #d4af37 !important;
+    letter-spacing: 2px !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    margin-bottom: 8px !important;
+}
+
+.main-heading {
+    font-size: 2.2rem !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    margin: 0 0 20px 0 !important;
+    line-height: 1.3 !important;
+}
+
+.essay-paragraph {
+    font-size: 1.1rem !important;
+    line-height: 1.8 !important;
+    color: #e2e8f0 !important;
+    margin-bottom: 20px !important;
+    text-align: left !important;
+    font-weight: 400 !important;
+}
+
+.section-heading {
+    color: #ffffff !important;
+    font-size: 1.5rem !important;
+    margin-bottom: 15px !important;
+}
+
+/* counseling_academy.html과 연동되는 스타일시트*/
+.sub-page-container {
+    width: 100%;
+    color: #e2e8f0;
+    text-align: left;
+}
+
+.main-heading {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 20px 0;
+}
+
+.sub-title {
+    color: #d4af37;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.section-heading {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 10px 0;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #2d3748;
+    border: none;
+    color: #fff;
+    box-sizing: border-box;
+}
+
+.submit-btn:hover {
+    background: #b8952f;
+}
+
+/* counseling_academy.html과 연동되는 스타일시트*/
+.sub-page-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    color: #e2e8f0;
+    text-align: left;
+}
+
+.main-heading {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 20px;
+}
+
+.sub-title {
+    font-size: 0.85rem;
+    color: #d4af37;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.essay-paragraph {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #a0aec0;
+    margin-bottom: 15px;
+}
+
+.divider {
+    height: 1px;
+    background-color: #2d3748;
+    margin: 40px 0;
+}
+
+.section-heading-centered {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.paper-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    table-layout: fixed;
+}
+
+.paper-table td,
+.paper-table th {
+    padding: 14px;
+    border-bottom: 1px solid #2d3748;
+    color: #cbd5e1;
+    text-align: left;
+}
+
+.paper-table th {
+    color: #d4af37;
+}
+
+/* counseling_academy.html과 연동되는 스타일시트*/
+.sub-page-container {
+    width: 100%;
+    color: #e2e8f0;
+    text-align: left;
+}
+
+.narrative-section {
+    margin-bottom: 35px;
+}
+
+.sub-title {
+    font-size: 0.85rem;
+    color: #d4af37;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.main-heading {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 20px 0;
+}
+
+.essay-paragraph {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #a0aec0;
+    margin-bottom: 15px;
+    text-align: justify;
+}
+
+.divider {
+    height: 1px;
+    background-color: #2d3748;
+    margin: 40px 0;
+}
+
+.archive-section {
+    width: 100%;
+}
+
+.section-heading {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 10px 0;
+}
+
+.section-desc {
+    font-size: 0.95rem;
+    color: #a0aec0;
+    margin: 0 0 20px 0;
+}
+
+.paper-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.paper-table th {
+    background-color: #1a202c;
+    color: #ffffff;
+    border-bottom: 2px solid #2d3748;
+    padding: 12px 15px;
+    text-align: left;
+}
+
+.paper-table td {
+    padding: 14px 15px;
+    border-bottom: 1px solid #2d3748;
+    cursor: pointer;
+}
+
+.paper-table tr:hover {
+    background-color: #2d3748;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 800px;
+    margin: 5% auto;
+    background: #1a202c;
+    padding: 20px;
+    border: 1px solid #d4af37;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    color: #fff;
+    font-size: 2.5rem;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+/* 하단 1/3 강제 차단 및 흐림 효과 레이아웃 (수정됨) */
+.image-mask-wrapper {
+    position: relative;
+    width: 100%;
+    background: #121214;
+}
+
+.image-mask-wrapper img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.mask-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 33.33%;
+    background: linear-gradient(to top, rgba(18, 18, 20, 1) 20%, rgba(18, 18, 20, 0.9) 70%, rgba(18, 18, 20, 0) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mask-text {
+    color: #d4af37;
+    font-weight: bold;
+    border: 1px solid #d4af37;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.modal-footer {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.return-btn {
+    padding: 10px 25px;
+    background: transparent;
+    border: 1px solid #d4af37;
+    color: #d4af37;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.return-btn:hover {
+    background: #d4af37;
+    color: #1a202c;
+}
+
+/* 푸터 하단 고정을 위한 전역 레이아웃 */
+/* 최종 통합 레이아웃: 푸터 하단 고정 및 컴팩트 정렬 */
+
+body {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+}
+
+#main-dashboard {
+    flex: 1 !important;
+    display: none;
+    /* 초기에는 숨김: JS가 클래스로 제어 */
+    flex-direction: column;
+    padding: 20px;
+}
+
+#main-dashboard.active {
+    display: flex !important;
+    /* 버튼 클릭 시 이 클래스가 추가되어야 함 */
+}
+
+
+
+footer {
+    margin-top: auto !important;
+    padding: 40px 20px !important;
+    font-size: 0.7rem !important;
+}
+
+.grid-card h3 {
+    /* clamp 없이 고정 비율로 축소 적용 */
+    font-size: 1.25rem !important;
+    line-height: 1.3 !important;
+    margin-bottom: 0.8rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.grid-card p {
+    /* clamp 없이 고정 비율로 축소 적용 */
+    font-size: 0.98rem !important;
+    line-height: 1.5 !important;
+    color: #a0aec0 !important;
+}
+
+/* 헤더 및 메뉴 강제 고정 */
+.mhw-header .max-w-full {
+    flex-wrap: nowrap !important;
+    display: flex !important;
+}
+
+/* 메뉴 항목이 줄바꿈 되지 않도록 여백을 최소화 */
+.nav-item {
+    white-space: nowrap !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+}
+
+.ethics-text {
+    color: var(--gold) !important;
+    font-weight: 500 !important;
+    margin-bottom: 10px !important;
+}
+
+/* 테이블의 첫 번째 열(구분, 학위, 자격증)을 자동으로 찾아 금색 적용 */
+.paper-table td:first-child,
+.paper-table th:first-child {
+    color: var(--gold) !important;
+    font-weight: 600 !important;
+}
+
+/* 제목 행(구분 등)의 금색 강조 */
+.paper-table th {
+    color: var(--gold) !important;
+}
+
+/* ==========================================================================
+   모바일 최적화 미디어 쿼리 (기존 레이아웃 보호를 위한 추가 규칙)
+   ========================================================================== */
+@media (max-width: 768px) {
+    #main-dashboard {
+        padding: 10px !important;
+    }
+
+    .mhw-header {
+        height: auto !important;
+        min-height: 60px !important;
+        padding-bottom: 12px !important;
+    }
+
+    .nav-item {
+        font-size: 0.85rem !important;
+        padding: 0.6rem 0.5rem !important;
+        display: inline-block !important;
+    }
+
+    .paper-table-wrapper {
+        overflow-x: auto !important;
+        display: block !important;
+        width: 100% !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .paper-table {
+        min-width: 100% !important;
+        display: table !important;
+        table-layout: auto !important;
+    }
+
+    .paper-table th,
+    .paper-table td {
+        white-space: nowrap !important;
+        word-break: keep-all !important;
+        line-height: 1.5 !important;
+    }
+
+    #welcome-screen {
+        height: 80vh !important;
+        margin: 5vh auto !important;
+    }
+
+    .welcome-title-gold {
+        font-size: 2rem !important;
+    }
+
+    .mobile-hide {
+        display: none !important;
+    }
+
+    .narrative-image-wrapper {
+        display: none !important;
+    }
+
+    .mobile-flex-col {
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+
+    .sub-page-container {
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+    }
+}
+
+/* 낡은 규제를 영구적으로 덮어쓰는 최종 지능형 헤더 알고리즘 (2줄 다단 줄바꿈 적용) */
+.mhw-header {
+    height: auto !important;
+    min-height: 70px !important;
+}
+
+.mhw-header .max-w-full {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+}
+
+.mhw-header nav {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    width: 100% !important;
+    gap: 10px !important;
+    padding-top: 15px !important;
+    padding-bottom: 15px !important;
+    text-align: center !important;
+}
+
+.mhw-header nav>a {
+    margin: 0 !important;
+    white-space: nowrap !important;
+    font-size: 0.85rem !important;
+    padding: 8px 0 !important;
+}
+
+@media (min-width: 600px) {
+    .mhw-header nav {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 12px !important;
+        padding-top: 15px !important;
+        padding-bottom: 15px !important;
+    }
+
+    .mhw-header nav>a {
+        padding: 10px 15px !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    .mhw-header .max-w-full {
+        justify-content: space-between !important;
+    }
+
+    .mhw-header nav {
+        display: flex !important;
+        width: auto !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-end !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        gap: 0 !important;
+    }
+
+    .mhw-header nav>a {
+        padding: 1rem 1.5rem !important;
+        font-size: 1.05rem !important;
+    }
+}
+
+/* 모바일 세로 화면 박스 꽉 채우기 - 상하좌우 이중 규제 철폐 완결판 */
+@media (max-width: 768px) {
+
+    /* 1. 최상위 섹션과 서브 콘텐츠 박스의 상하좌우 거대 여백 완전 철폐 */
+    section.py-16,
+    #pai-sub-content {
+        padding-top: 35px !important;
+        padding-bottom: 0 !important;
+        margin-top: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        border: none !important;
+        border-radius: 0 !important;
+    }
+
+    /* 2. 서사가 은닉되면서 덩그러니 남은 불필요한 구분선 강제 소거 */
+    .divider {
+        display: none !important;
+        margin: 0 !important;
+    }
+
+    /* 3. 각 섹션 타이틀 상단에 고정되어 있던 방대한 45px 마진을 15px로 압축 */
+    .archive-section {
+        margin-top: 15px !important;
+    }
+
+    /* 4. 일반 텍스트의 가독성을 위한 최소한의 안전 구역(15px) 유지 */
+    .sub-page-container {
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+    }
+
+    /* 5. 데이터 테이블만 안전 구역을 벗어나 액정에 100% 밀착 */
+    .paper-table-wrapper {
+        margin-left: -15px !important;
+        margin-right: -15px !important;
+        width: calc(100% + 30px) !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-radius: 0 !important;
+    }
+}
+
+
+
+@media (max-width: 900px) and (orientation: landscape) {
+    .hero-banner {
+        padding-top: 500px !important;
+    }
+}
+
+@media (max-width: 1024px) and (orientation: landscape) {
+    .hero-banner {
+        padding-top: 180px !important;
+    }
+}

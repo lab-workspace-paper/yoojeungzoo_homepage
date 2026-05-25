@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PAI AI Agent Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght=700&family=Pretendard:wght=400;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <div class="sub-page-container">
+        <div class="narrative-section  mobile-hide">
+            <div class="sub-title">Research Philosophy and Trajectory</div>
+            <h2 class="main-heading">연구의 궤적: 논문과 미공개 연구를 통한 학술적 지평의 확장</h2>
+            <p class="essay-paragraph">
+                본 공간은 관료제 모형이 지닌 한계를 넘어, 디지털 지능 체계가 어떻게 그 질서를 재구성하는지 그 학문적 여정을 기록하는 데 목적을 둔다. 엄밀한 논리적 검증을 거친 연구
+                결과물은 변화하는 시대의 복잡성을 읽어내는 핵심적인 근거가 된다. 따라서 인공지능 에이전트와 지능형 거버넌스라는 기술적 변화는 연구의 종착지가 아닌, 우리 삶의 주체로서 나아가야 할
+                새로운
+                출발점이다.
+            </p>
+            <p class="essay-paragraph mobile-hide">
+                본 아카이브는 기계적인 업무 처리를 넘어, 인간의 고유한 맥락을 지키고 데이터를 통해 더 나은 삶을 설계하려는 지적 연대 공간이으로 이곳에 쌓인 발자취는, 기술을 도구로 삼아 그 너머의
+                지성을
+                향해 나아갈 미래의 실질적인 좌표가 될 것이다.
+            </p>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="archive-section">
+            <h3 class="section-heading">주요 학술 연구 성과 (Published Papers)</h3>
+            <div class="paper-table-wrapper">
+                <table class="paper-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">연구분야</th>
+                            <th style="width: 50%;">논문 및 저널명</th>
+                            <th style="width: 15%;">발행처 / 학회</th>
+                            <th style="width: 15%;">발행연도</th>
+                        </tr>
+                    </thead>
+                    <tbody id="published-papers-list">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="archive-section" style="margin-top: 45px;">
+            <h3 class="section-heading">진행 중인 연구 및 미발표 논문 (Work in Progress)</h3>
+            <div class="paper-table-wrapper">
+                <table class="paper-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">분류</th>
+                            <th style="width: 50%;">미발표 연구 과제명 (파일명 연동)</th>
+                            <th style="width: 15%;">보안 등급</th>
+                            <th style="width: 15%;">열람 통제</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wip-papers-list">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="wip-secure-modal" class="secure-modal-overlay" onclick="closeSecureModal()">
+            <div class="secure-modal-content" onclick="event.stopPropagation()">
+                <div class="secure-modal-header">
+                    <span id="modal-paper-title" class="secure-modal-title">지적 재산권 임시 보호 구역</span>
+                    <button class="secure-modal-close" onclick="closeSecureModal()">✕</button>
+                </div>
+                <div class="secure-modal-body" oncontextmenu="return false" onselectstart="return false"
+                    ondragstart="return false">
+                    <p
+                        style="font-size: 0.85rem; color: #ef4444; margin-bottom: 15px; text-align: left; font-weight: 600;">
+                        본 문서는 미발표 연구 자산으로 유출을 막기 위해 1페이지만 제공되며, 하단 영역은 강제 흐림 처리되었습니다.
+                    </p>
+                    <div class="secure-lens-container">
+                        <img id="modal-preview-img" src="" alt="제한 열람 표지 자산">
+                        <div class="blur-secure-curtain">
+                            <span class="curtain-text">미발표 원고 지적재산권 보안 구역</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var serverPublishedPapers = [];
+        var serverWipPapers = [];
+
+        function renderAcademicArchive() {
+            fetch('/api/papers-data')
+                .then(res => res.json())
+                .then(data => {
+                    serverPublishedPapers = data.published;
+                    serverWipPapers = data.wip;
+
+                    const publishedTbody = document.getElementById('published-papers-list');
+                    const wipTbody = document.getElementById('wip-papers-list');
+
+                    if (publishedTbody) {
+                        if (serverPublishedPapers.length === 0) {
+                            publishedTbody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 py-8">published 폴더가 비어 있습니다. 규칙에 맞춘 PDF 파일을 배치해 주십시오.</td></tr>`;
+                        } else {
+                            publishedTbody.innerHTML = serverPublishedPapers.map((paper, index) => `
+                            <tr onclick="openPublishedPaper(${index})">
+                                <td class="font-semibold" style="color: #d4af37;">${paper.category}</td>
+                                <td>${paper.title}</td>
+                                <td>${paper.publisher}</td>
+                                <td>${paper.year}</td>
+                            </tr>
+                        `).join('');
+                        }
+                    }
+
+                    if (wipTbody) {
+                        if (serverWipPapers.length === 0) {
+                            wipTbody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 py-8">wip 폴더가 비어 있습니다. 이미지 파일을 배치해 주십시오.</td></tr>`;
+                        } else {
+                            wipTbody.innerHTML = serverWipPapers.map((paper, index) => `
+                            <tr onclick="openSecureWipPaper(${index})">
+                                <td class="font-semibold" style="color: #94a3b8;">${paper.category}</td>
+                                <td class="text-white font-medium">${paper.title}</td>
+                                <td class="text-rose-400 font-mono text-xs">기밀성(Level 3)</td>
+                                <td style="color: #d4af37;">제한 열람 &rarr;</td>
+                            </tr>
+                        `).join('');
+                        }
+                    }
+                })
+                .catch(err => console.error("데이터 연동 장애:", err));
+        }
+
+        function openPublishedPaper(index) {
+            const paper = serverPublishedPapers[index];
+            if (paper && paper.name) {
+                window.open(`/static/papers/published/${paper.name}.pdf`, '_blank');
+            }
+        }
+
+        function openSecureWipPaper(index) {
+            const paper = serverWipPapers[index];
+            const modal = document.getElementById('wip-secure-modal');
+            const titleTarget = document.getElementById('modal-paper-title');
+            const imgTarget = document.getElementById('modal-preview-img');
+
+            if (paper && modal && titleTarget && imgTarget) {
+                titleTarget.innerText = paper.title + " (임시 열람)";
+                imgTarget.src = `/static/papers/wip/${paper.name}.png`;
+                modal.classList.add('modal-open');
+            }
+        }
+
+        function closeSecureModal() {
+            const modal = document.getElementById('wip-secure-modal');
+            if (modal) { modal.classList.remove('modal-open'); }
+        }
+
+        renderAcademicArchive();
+    </script>
+</body>
+
+</html>

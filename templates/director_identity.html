@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PAI AI Agent Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght=700&family=Pretendard:wght=400;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+    <div class="sub-page-container">
+        <div class="narrative-section mobile-flex-col" style="display: flex; gap: 40px; align-items: flex-start;">
+
+            <div class="mobile-hide" style="flex: 1; min-width: 200px; margin-top: 40px;">
+                <img src="/static/images/profil.png" alt="유정주 박사"
+                    style="width: 100%; border-radius: 4px; border: 1px solid #d4af37;">
+                <div
+                    style="text-align: center; color: #d4af37; margin-top: 10px; font-size: 0.9rem; font-weight: bold;">
+                    Ph.D. in Public Administration
+                </div>
+            </div>
+
+            <div style="flex: 3;" class="mobile-hide">
+                <div class="sub-title">Director Identity & Philosophy</div>
+                <h2 class="main-heading">이론의 냉기와 인간의 온기 사이에서</h2>
+
+                <p class="essay-paragraph mobile-hide">
+                    전자계산학의 엄밀한 논리에서 출발했으나, 0과 1로 치환되지 않는 '인간'이라는 실체에 매혹되어 행정학의 길을 걸어왔으며, 사회복지 현장에서 마주한 제도의 틈새와 박사과정의 연구를
+                    통해, 국가 시스템이 어떻게 개인의 자유와 존엄을 온전히 담아낼 것인가를 그 실천적 화두로 삼아왔다.
+                </p>
+
+                <p class="essay-paragraph mobile-hide">
+                    이후 차가운 조문과 정교한 데이터가 놓치고 있는 인간의 고독과 눈물을 응시하고자 사유의 전환을 맞이하였으며, 현재는 인공지능을 통한 미래 사회의 디지털 지능형 설계를 공유하는 교육
+                    활동과, 복잡한 삶의 맥락 속에서 스스로를 성찰하는 심리적 과정을 아우르고 있다.
+                </p>
+
+                <p class="essay-paragraph mobile-hide">
+                    학문과 삶의 경계에서 끊임없이 길을 묻고 답을 구하는 과정은 배움의 끝이 아닌 새로운 시작이기에, 복잡한 수식과 조문을 넘어 더 깊은 사유의 길을 걷고자 한다. 그리하여 스스로의
+                    존엄을 지키며 살아가고자 애쓰는 모든 이들의 여정에 따뜻한 기록자로 남기를 소망한다.
+                </p>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="archive-section">
+
+            <table class="paper-table">
+                <tbody id="career-table-body"></tbody>
+            </table>
+        </div>
+
+        <div class="archive-section" style="margin-top: 45px;">
+            <h3 class="section-heading-centered">학위 (Academic Degrees)</h3>
+            <div class="paper-table-wrapper">
+                <table class="paper-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">구분</th>
+                            <th style="width: 20%;">학위명</th>
+                            <th style="width: 25%;">전공</th>
+                            <th style="width: 30%;">발급기관</th>
+                            <th style="width: 15%;">취득연도</th>
+                        </tr>
+                    </thead>
+                    <tbody id="degree-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="archive-section" style="margin-top: 45px;">
+            <h3 class="section-heading-centered">전문 자격 (Professional Credentials)</h3>
+            <div class="paper-table-wrapper">
+                <table class="paper-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">구분</th>
+                            <th style="width: 20%;">자격명</th>
+                            <th style="width: 25%;">등록번호</th>
+                            <th style="width: 30%;">발급기관</th>
+                            <th style="width: 15%;">취득연도</th>
+                        </tr>
+                    </thead>
+                    <tbody id="credential-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 변수 중복 선언 방지: 이미 존재하지 않을 때만 선언
+        if (typeof window.careerData === 'undefined') {
+            window.careerData = [];
+        }
+
+        // 2. 함수를 전역 범위로 명시
+        window.renderIdentity = function () {
+            const body = document.getElementById('career-table-body');
+            if (!body) return; // 요소가 없으면 실행 중단 (안전장치)
+
+            body.innerHTML = window.careerData.map(c => `
+            <tr>
+                <td style="width: 10%; color: #d4af37; font-weight: 600;">${c.type}</td>
+                <td style="width: 20%; font-weight: 600;">${c.title}</td>
+                <td style="width: 25%;">${c.detail}</td>
+                <td style="width: 30%;"></td>
+                <td style="width: 15%;">${c.year}</td>
+            </tr>
+        `).join('');
+
+            fetch('/api/credentials-list')
+                .then(res => res.json())
+                .then(data => {
+                    const parseFile = (f) => {
+                        const parts = f.replace('.png', '').split('_');
+                        return { cat: parts[0], item: parts[1], detail: parts[2], issuer: parts[3], year: parts[4] };
+                    };
+
+                    const degrees = data.files.filter(f => f.startsWith('학위')).map(parseFile).sort((a, b) => parseInt(b.year) - parseInt(a.year));
+                    const certs = data.files.filter(f => f.startsWith('자격증')).map(parseFile).sort((a, b) => a.item.localeCompare(b.item));
+
+                    const degBody = document.getElementById('degree-table-body');
+                    const certBody = document.getElementById('credential-table-body');
+
+                    if (degBody) degBody.innerHTML = degrees.map(i => `<tr><td>${i.cat}</td><td>${i.item}</td><td>${i.detail}</td><td>${i.issuer}</td><td>${i.year}</td></tr>`).join('');
+                    if (certBody) certBody.innerHTML = certs.map(i => `<tr><td>${i.cat}</td><td>${i.item}</td><td>${i.detail}</td><td>${i.issuer}</td><td>${i.year}</td></tr>`).join('');
+                });
+        };
+
+        // 3. 페이지가 로드될 때마다 함수 실행
+        window.renderIdentity();
+    </script>

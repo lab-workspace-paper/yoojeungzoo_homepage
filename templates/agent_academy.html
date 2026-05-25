@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PAI AI Agent Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght=700&family=Pretendard:wght=400;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+    <div class="sub-page-container">
+        <div class="narrative-section" style="margin-bottom: 60px;">
+            <div class="sub-title" style="color: #d4af37; margin-bottom: 10px;">The Academy of Intelligent Design</div>
+            <h2 class="main-heading">인공지능(AI) 교육의 여정</h2>
+            <p class="essay-paragraph mobile-hide" style="line-height: 1.8; margin-bottom: 30px;">
+                본 아카데미는 인공지능을 통해 삶의 맥락을 재구성하며 공공의 가치를 실현하는 미래의 설계자를 양성하는 곳으로, 단순한 기술 도입을 넘어 정보의 벽을 허물고 일선에서 분투하는 이들의 인지적
+                노고를
+                덜어내는 혁신적인 여정이다. 이곳에서 교육생들은 인공지능 알고리즘을 활용해 복잡한 삶의 요구를 더 나은 서비스로 번역하는 독립적 역량을 체득하게 되며, 이는 단순한 기술 습득을 넘어
+                각자의
+                통찰을 깊이 있는 지적 연금으로 승화시키는 귀한 시간이 될 것이다.
+            </p>
+        </div>
+
+        <div class="book-info-section mobile-flex-col"
+            style="display: flex; gap: 40px; margin-bottom: 60px; background: #1a202c; padding: 30px; border: 1px solid #d4af37;">
+
+            <div class="mobile-hide" style="flex: 1; max-width: 250px;">
+                <img src="/static/images/academy_book/book_cover.png" alt="교재 표지"
+                    style="width: 100%; border: 1px solid #2d3748;">
+            </div>
+
+            <div style="flex: 2;">
+                <h3 class="section-heading" style="color: #d4af37; margin-bottom: 15px;">수업 강의 교재</h3>
+                <p class="essay-paragraph" style="line-height: 1.8;">본 강의의 이론적 토대인 교재입니다. 행정의 알고리즘화부터 정책 설계자의 실무까지 모든
+                    통찰이 담겨 있습니다.</p>
+
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;">
+                    <button onclick="openTocPopup()"
+                        style="padding: 12px 25px; background: #2d3748; color: #fff; border: 1px solid #d4af37; cursor: pointer; font-weight: bold;">
+                        교재 목차 보기
+                    </button>
+                    <button onclick="openVideoPopup()"
+                        style="padding: 12px 25px; background: #d4af37; color: #121214; border: none; font-weight: bold; cursor: pointer;">
+                        ▶ 강의 미리보기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-heading" style="margin-bottom: 20px;">지속 가능한 지적 자산을 위한 6주 로드맵</h3>
+        <div class="roadmap-grid"
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-bottom: 60px;">
+            <div class="step" style="background: #1a202c; padding: 25px; border-left: 4px solid #d4af37;">
+                <h4 style="color: #fff; margin-bottom: 5px;">1주차: 행정 알고리즘 문해력</h4>
+                <p style="color: #a0aec0; font-size: 0.9rem;">성과: 복잡한 행정 현상을 논리적 데이터 구조로 설계하는 역량 확보</p>
+            </div>
+            <div class="step" style="background: #1a202c; padding: 25px; border-left: 4px solid #d4af37;">
+                <h4 style="color: #fff; margin-bottom: 5px;">2주차: 데이터 맥락 분석 기법</h4>
+                <p style="color: #a0aec0; font-size: 0.9rem;">성과: 정보 보안과 민원 분석을 관통하는 통찰력 확보</p>
+            </div>
+            <div class="step" style="background: #1a202c; padding: 25px; border-left: 4px solid #d4af37;">
+                <h4 style="color: #fff; margin-bottom: 5px;">3주차: 법률 근거 중심 논리</h4>
+                <p style="color: #a0aec0; font-size: 0.9rem;">성과: 행정적 판단에 근거를 부여하는 고도화된 문서 기술</p>
+            </div>
+            <div class="step" style="background: #1a202c; padding: 25px; border-left: 4px solid #d4af37;">
+                <h4 style="color: #fff; margin-bottom: 5px;">4주차: 행정 업무 자동화</h4>
+                <p style="color: #a0aec0; font-size: 0.9rem;">성과: 업무 시간 단축을 위한 오케스트레이션 완결</p>
+            </div>
+            <div class="step" style="background: #1a202c; padding: 25px; border-left: 4px solid #d4af37;">
+                <h4 style="color: #fff; margin-bottom: 5px;">5주차: 스마트 지식 관리</h4>
+                <p style="color: #a0aec0; font-size: 0.9rem;">성과: 방대한 보고서의 핵심을 관통하는 지식 요약 역량</p>
+            </div>
+            <div class="step" style="background: #1a202c; padding: 25px; border-left: 4px solid #d4af37;">
+                <h4 style="color: #fff; margin-bottom: 5px;">6주차: 지적 연금 시스템 구축</h4>
+                <p style="color: #a0aec0; font-size: 0.9rem;">성과: 개별 시나리오별 행정 에이전트 구동 및 자산화 기반 마련</p>
+            </div>
+        </div>
+
+        <div class="academy-request-section" style="padding: 40px; background: #1a202c; border: 1px solid #d4af37;">
+            <h3 class="section-heading" style="color: #d4af37; margin-bottom: 15px;">강의 및 자문 요청 (Academy Inquiry)</h3>
+            <p class="section-desc" style="color: #e2e8f0; margin-bottom: 25px;">디지털 전환과 AI 정책 설계자 양성을 위한 교육 및 자문을
+                지원합니다.
+            </p>
+            <div class="inquiry-form">
+                <input type="text" id="orgName" placeholder="기관명 / 단체명" class="form-input">
+                <input type="email" id="contactEmail" placeholder="담당자 연락처 (이메일)" class="form-input">
+                <select id="requestType" class="form-input" style="background: #2d3748; color: #fff;">
+                    <option value="ai_lecture">AI 강의</option>
+                    <option value="policy_design">AI 에이전트 강의</option>
+                    <option value="data_audit">AI 에이전트 서버 구축</option>
+                    <option value="data_audit">논문 및 연구설계 지원</option>
+                    <option value="data_audit">통계 분석 및 해석</option>
+                </select>
+                <textarea id="message" placeholder="요청 상세 내용 및 당면 과제" class="form-input"
+                    style="height: 120px;"></textarea>
+                <button onclick="submitInquiry()" class="submit-btn"
+                    style="width: 100%; padding: 15px; background: #d4af37; color: #121214; font-weight: bold; border: none; cursor: pointer;">요청
+                    정보 전송하기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="videoModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; align-items:center; justify-content:center;">
+        <div style="width:90%; max-width:800px; position:relative;"><span onclick="closeVideoPopup()"
+                style="position:absolute; top:-30px; right:0; cursor:pointer; color:#fff;">✕ 닫기</span><video
+                id="academyVideo" controls style="width:100%;">
+                <source src="/static/academy_videos/week1_teaser.mp4" type="video/mp4">
+            </video></div>
+    </div>
+
+    <div id="tocModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; align-items:center; justify-content:center;">
+        <div style="width:90%; max-width:600px; position:relative;"><span onclick="closeTocPopup()"
+                style="position:absolute; top:-30px; right:0; cursor:pointer; color:#fff;">✕ 닫기</span><img
+                src="/static/images/academy_book/toc_page_1.png" style="width:100%;"></div>
+    </div>
+
+    <script>
+        function openVideoPopup() { document.getElementById('videoModal').style.display = 'flex'; document.getElementById('academyVideo').play(); }
+        function closeVideoPopup() { const v = document.getElementById('academyVideo'); v.pause(); v.currentTime = 0; document.getElementById('videoModal').style.display = 'none'; }
+        function openTocPopup() { document.getElementById('tocModal').style.display = 'flex'; }
+        function closeTocPopup() { document.getElementById('tocModal').style.display = 'none'; }
+        function submitInquiry() { alert("요청이 정상적으로 접수되었습니다. 검토 후 연락드릴 예정입니다."); }
+    </script>
