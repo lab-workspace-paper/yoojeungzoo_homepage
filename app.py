@@ -9,8 +9,10 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
+port = int(os.environ.get("PORT", 8080))
+
 # 폴더 경로 정의
-BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
+BASE_PATH = os.path.join(app.root_path, 'static')
 
 def scan_local_papers():
     published_dir = os.path.join(BASE_PATH, 'papers', 'published')
@@ -94,4 +96,5 @@ def get_sub_content(filename):
     return render_template(filename)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5004, debug=True)
+    # host는 0.0.0.0으로 유지하고, 포트는 위에서 정의한 port 변수를 사용
+    app.run(host='0.0.0.0', port=port)
