@@ -102,5 +102,8 @@ def get_sub_content(filename):
     return render_template(filename)
 
 if __name__ == '__main__':
-    # host는 0.0.0.0으로 유지하고, 포트는 위에서 정의한 port 변수를 사용
+    # 클라우드 환경에서는 자동으로 포트를 감지하여 실행
     app.run(host='0.0.0.0', port=port)
+
+# Gunicorn이 호출할 수 있도록 app 객체를 명시
+application = app
