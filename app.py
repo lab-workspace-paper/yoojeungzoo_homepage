@@ -18,7 +18,7 @@ else:
     BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
 
 # 폴더 경로 정의
-BASE_PATH = os.path.join(app.root_path, 'static')
+# BASE_PATH = os.path.join(app.root_path, 'static')
 
 def scan_local_papers():
     published_dir = os.path.join(BASE_PATH, 'papers', 'published')
