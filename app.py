@@ -11,7 +11,10 @@ app = Flask(__name__)
 CORS(app)
 
 port = int(os.environ.get("PORT", 8080))
-is_server = os.environ.get("IS_SERVER", "False") == "True"
+
+# [핵심] 환경 변수 대신 물리적 경로로 로컬/서버 완벽 자동 감지
+LOCAL_BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
+is_server = not os.path.exists(LOCAL_BASE_PATH)
 
 BUCKET_NAME = "yoojeongzoo-library-storage"
 
@@ -21,62 +24,68 @@ if is_server:
 else:
     storage_client = None
     bucket = None
-    BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
 
-# 파일명 파싱 함수 (로컬/서버 공통)
 def parse_paper_filename(filename):
     name_without_ext = os.path.splitext(filename)[0]
     parts = name_without_ext.split('_')
-    # 기본값 설정
-    title = name_without_ext
-    category = "연구"
-    publisher = "-"
-    year = "-"
     
-    if len(parts) > 1:
-        category = parts[0]
-        title = "_".join(parts[1:])
-    if len(parts) > 2:
-        publisher = parts[-2]
-        year = parts[-1]
-    return {'name': name_without_ext, 'category': category, 'title': title, 'publisher': publisher, 'year': year, 'file': filename}
+    category = parts[0] if len(parts) > 0 else "연구"
+    year = parts[-1] if len(parts) > 3 else "-"
+    publisher = parts[-2] if len(parts) > 2 else "-"
+    
+    if len(parts) > 3:
+        title = "_".join(parts[1:-2])
+    elif len(parts) > 1:
+        title = parts[1]
+    else:
+        title = name_without_ext
+        
+    return {
+        'name': name_without_ext,
+        'category': category,
+        'title': title,
+        'publisher': publisher,
+        'year': year,
+        'file': filename
+    }
 
 def scan_local_papers():
-    published_list = []
-    wip_list = []
-    
-    if is_server:
+    published, wip = [], []
+    if is_server and bucket:
+        # 클라우드 환경: GCS 스토리지 탐색
         blobs = bucket.list_blobs(prefix='static/papers/')
         for blob in blobs:
-            if not blob.name.lower().endswith(('.pdf', '.png')): continue
             file_name = blob.name.split('/')[-1]
+            if not file_name or '.' not in file_name: continue
             
-            # published는 .pdf, wip은 .png
             if '/published/' in blob.name and file_name.lower().endswith('.pdf'):
-                published_list.append(parse_paper_filename(file_name))
+                published.append(parse_paper_filename(file_name))
             elif '/wip/' in blob.name and file_name.lower().endswith('.png'):
-                wip_list.append(parse_paper_filename(file_name))
+                wip.append(parse_paper_filename(file_name))
     else:
-        pub_dir = os.path.join(BASE_PATH, 'papers', 'published')
-        wip_dir = os.path.join(BASE_PATH, 'papers', 'wip')
+        # 로컬 환경: G드라이브 물리 탐색
+        pub_dir = os.path.join(LOCAL_BASE_PATH, 'papers', 'published')
+        wip_dir = os.path.join(LOCAL_BASE_PATH, 'papers', 'wip')
         if os.path.exists(pub_dir):
             for f in os.listdir(pub_dir):
-                if f.lower().endswith('.pdf'): published_list.append(parse_paper_filename(f))
+                if f.lower().endswith('.pdf'):
+                    published.append(parse_paper_filename(f))
         if os.path.exists(wip_dir):
             for f in os.listdir(wip_dir):
-                if f.lower().endswith('.png'): wip_list.append(parse_paper_filename(f))
-    return published_list, wip_list
+                if f.lower().endswith('.png'):
+                    wip.append(parse_paper_filename(f))
+    return published, wip
 
 def scan_local_books():
     books = []
-    if is_server:
+    if is_server and bucket:
         blobs = bucket.list_blobs(prefix='static/books/pending/')
         for blob in blobs:
-            if blob.name.lower().endswith('.pdf'):
-                file_name = blob.name.split('/')[-1]
+            file_name = blob.name.split('/')[-1]
+            if file_name.lower().endswith('.pdf'):
                 books.append({'title': file_name.replace('.pdf', ''), 'file': file_name})
     else:
-        books_dir = os.path.join(BASE_PATH, 'books', 'pending')
+        books_dir = os.path.join(LOCAL_BASE_PATH, 'books', 'pending')
         if os.path.exists(books_dir):
             for f in os.listdir(books_dir):
                 if f.lower().endswith('.pdf'):
@@ -103,13 +112,12 @@ def get_sub_content(filename):
 
 @app.route('/api/academy-video/<filename>')
 def get_academy_video(filename):
-    # 폴더명을 academy_videos로 통일
-    path = f"static/academy_videos/{filename}"
-    if is_server:
-        blob = bucket.blob(path)
+    if is_server and bucket:
+        blob = bucket.blob(f"static/academy_videos/{filename}")
         url = blob.generate_signed_url(expiration=timedelta(minutes=60))
         return jsonify({'url': url})
-    return jsonify({'url': f"/{path}"})
+    else:
+        return jsonify({'url': f"/static/academy_videos/{filename}"})
 
 application = app
 
