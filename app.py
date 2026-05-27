@@ -1,4 +1,5 @@
 import os
+import sys
 from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -14,8 +15,8 @@ port = int(os.environ.get("PORT", 8080))
 BUCKET_NAME = "yoojeongzoo-library-storage"
 LOCAL_BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
 
-# 로컬인지 서버인지 판단 (K_SERVICE는 클라우드 런에만 존재하는 환경변수)
-is_server = 'K_SERVICE' in os.environ
+# [가장 확실한 물리적 감지] 윈도우 OS(로컬)가 아니면 무조건 클라우드 서버로 판정
+is_server = sys.platform != 'win32'
 
 if is_server:
     try:
@@ -52,12 +53,12 @@ def scan_local_papers():
     published, wip = [], []
 
     if is_server:
-        # === 서버 전용 로직 (자가 진단 가동) ===
+        # === 서버(클라우드) 전용 로직 ===
         if bucket:
             try:
                 blobs = list(bucket.list_blobs(prefix='static/papers/'))
                 if not blobs:
-                    published.append(parse_paper_filename("시스템진단_static/papers/ 폴더가 비어있거나 경로가 다름_오류_2026.pdf"))
+                    published.append(parse_paper_filename("시스템진단_static/papers/ 폴더에 파일이 없습니다_오류_2026.pdf"))
                 else:
                     for blob in blobs:
                         file_name = blob.name.split('/')[-1]
@@ -71,11 +72,11 @@ def scan_local_papers():
                         sample = ", ".join([b.name.split('/')[-1] for b in blobs[:2]])
                         published.append(parse_paper_filename(f"시스템진단_조건에 맞는 파일 없음 샘플 [{sample}]_오류_2026.pdf"))
             except Exception as e:
-                published.append(parse_paper_filename(f"시스템진단_GCS 탐색오류[{str(e)}]_권한에러_2026.pdf"))
+                published.append(parse_paper_filename(f"시스템진단_GCS 탐색오류 [{str(e)}]_권한에러_2026.pdf"))
         else:
-            published.append(parse_paper_filename(f"시스템진단_구글 클라우드 접근 권한(IAM) 누락 [{bucket_error}]_권한에러_2026.pdf"))
+            published.append(parse_paper_filename(f"시스템진단_구글 클라우드 스토리지 접근 권한(IAM) 누락 [{bucket_error}]_권한에러_2026.pdf"))
     else:
-        # === 로컬 전용 로직 (진단 메시지 일체 없음, 기존 로직 완벽 유지) ===
+        # === 로컬 PC 전용 로직 ===
         pub_dir = os.path.join(LOCAL_BASE_PATH, 'papers', 'published')
         wip_dir = os.path.join(LOCAL_BASE_PATH, 'papers', 'wip')
         if os.path.exists(pub_dir):
@@ -92,7 +93,6 @@ def scan_local_papers():
 def scan_local_books():
     books = []
     if is_server:
-        # === 서버 전용 로직 ===
         if bucket:
             try:
                 blobs = list(bucket.list_blobs(prefix='static/books/'))
@@ -105,9 +105,8 @@ def scan_local_books():
             except Exception as e:
                 books.append({'title': f'시스템진단_서적 탐색 오류[{str(e)}]', 'file': ''})
         else:
-            books.append({'title': '시스템진단_GCS 접근 권한 누락', 'file': ''})
+            books.append({'title': '시스템진단_GCS 접근 권한 누락_에러_2026', 'file': ''})
     else:
-        # === 로컬 전용 로직 (진단 메시지 없음) ===
         books_dir = os.path.join(LOCAL_BASE_PATH, 'books', 'pending')
         if os.path.exists(books_dir):
             for f in os.listdir(books_dir):
