@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
-from flask import jsonify
+from google.cloud import storage
 
 load_dotenv()
 
@@ -12,24 +12,32 @@ CORS(app)
 port = int(os.environ.get("PORT", 8080))
 is_server = os.environ.get("IS_SERVER", "False") == "True"
 
+# GCS 버킷 설정
+BUCKET_NAME = "yoojeongzoo-library-storage"
+
 if is_server:
-    BASE_PATH = os.path.join(app.root_path, 'static')
+    # 서버 환경: 클라우드 스토리지 객체 생성
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(BUCKET_NAME)
+    BASE_PATH = "static" # GCS 내 폴더 경로 기준점
 else:
+    # 로컬 환경: 기존 G드라이브 경로 유지
+    storage_client = None
+    bucket = None
     BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
 
-# 폴더 경로 정의
-# BASE_PATH = os.path.join(app.root_path, 'static')
-
 def scan_local_papers():
-    published_dir = os.path.join(BASE_PATH, 'papers', 'published')
-    wip_dir = os.path.join(BASE_PATH, 'papers', 'wip')
-    
-    # 1. published: .pdf 전용 스캔
-    published_list = []
-    if os.path.exists(published_dir):
-        for file in os.listdir(published_dir):
-            if file.upper().endswith('.PDF'):
-                name_without_ext = os.path.splitext(file)[0]
+    if is_server:
+        # 서버 구동 시: GCS 버킷 스캔
+        published_list = []
+        wip_list = []
+        blobs = bucket.list_blobs(prefix='static/papers/')
+        for blob in blobs:
+            file_name = blob.name.split('/')[-1]
+            if not file_name: continue
+            
+            if file_name.upper().endswith('.PDF') and 'published' in blob.name:
+                name_without_ext = os.path.splitext(file_name)[0]
                 parts = name_without_ext.split('_')
                 published_list.append({
                     'name': name_without_ext,
@@ -38,33 +46,67 @@ def scan_local_papers():
                     'publisher': parts[2] if len(parts) > 2 else "학회 아카이브",
                     'year': parts[3] if len(parts) > 3 else "2026"
                 })
-            
-    # 2. wip: .png 전용 스캔
-    wip_list = []
-    if os.path.exists(wip_dir):
-        for file in os.listdir(wip_dir):
-            if file.upper().endswith('.PNG'):
-                name_without_ext = os.path.splitext(file)[0]
+            elif file_name.upper().endswith('.PNG') and 'wip' in blob.name:
+                name_without_ext = os.path.splitext(file_name)[0]
                 wip_list.append({
                     'name': name_without_ext,
                     'category': "미발표",
                     'title': name_without_ext,
                     'status': "진행"
                 })
-            
-    return published_list, wip_list
-
-def scan_local_books():
-    # books 하위의 모든 .pdf 파일 재귀적 스캔
-    books_dir = os.path.join(BASE_PATH, 'books')
-    books = []
-    if os.path.exists(books_dir):
-        for root, dirs, files in os.walk(books_dir):
-            for file in files:
+        return published_list, wip_list
+    else:
+        # 로컬 구동 시: 기존 로직 유지
+        published_dir = os.path.join(BASE_PATH, 'papers', 'published')
+        wip_dir = os.path.join(BASE_PATH, 'papers', 'wip')
+        published_list = []
+        if os.path.exists(published_dir):
+            for file in os.listdir(published_dir):
                 if file.upper().endswith('.PDF'):
                     name_without_ext = os.path.splitext(file)[0]
-                    books.append({'title': name_without_ext, 'file': file})
-    return books
+                    parts = name_without_ext.split('_')
+                    published_list.append({
+                        'name': name_without_ext,
+                        'category': parts[0] if len(parts) > 0 else "학술 논문",
+                        'title': parts[1] if len(parts) > 1 else name_without_ext,
+                        'publisher': parts[2] if len(parts) > 2 else "학회 아카이브",
+                        'year': parts[3] if len(parts) > 3 else "2026"
+                    })
+        wip_list = []
+        if os.path.exists(wip_dir):
+            for file in os.listdir(wip_dir):
+                if file.upper().endswith('.PNG'):
+                    name_without_ext = os.path.splitext(file)[0]
+                    wip_list.append({
+                        'name': name_without_ext,
+                        'category': "미발표",
+                        'title': name_without_ext,
+                        'status': "진행"
+                    })
+        return published_list, wip_list
+
+def scan_local_books():
+    if is_server:
+        # 서버 구동 시: GCS 버킷 내 books 폴더 스캔
+        books = []
+        blobs = bucket.list_blobs(prefix='static/books/')
+        for blob in blobs:
+            if blob.name.upper().endswith('.PDF'):
+                file_name = blob.name.split('/')[-1]
+                name_without_ext = os.path.splitext(file_name)[0]
+                books.append({'title': name_without_ext, 'file': file_name})
+        return books
+    else:
+        # 로컬 구동 시: 기존 로직 유지
+        books_dir = os.path.join(BASE_PATH, 'books')
+        books = []
+        if os.path.exists(books_dir):
+            for root, dirs, files in os.walk(books_dir):
+                for file in files:
+                    if file.upper().endswith('.PDF'):
+                        name_without_ext = os.path.splitext(file)[0]
+                        books.append({'title': name_without_ext, 'file': file})
+        return books
 
 @app.route('/')
 @app.route('/ko')
