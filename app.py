@@ -13,42 +13,33 @@ CORS(app)
 port = int(os.environ.get("PORT", 8080))
 is_server = os.environ.get("IS_SERVER", "False") == "True"
 
-# GCS 버킷 설정
 BUCKET_NAME = "yoojeongzoo-library-storage"
 
 if is_server:
     storage_client = storage.Client()
     bucket = storage_client.bucket(BUCKET_NAME)
-    BASE_PATH = "."
 else:
     storage_client = None
     bucket = None
-    # 로컬 환경: 기존 G드라이브 경로 유지
     BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
 
+# 파일명 파싱 함수 (로컬/서버 공통)
 def parse_paper_filename(filename):
     name_without_ext = os.path.splitext(filename)[0]
     parts = name_without_ext.split('_')
+    # 기본값 설정
+    title = name_without_ext
+    category = "연구"
+    publisher = "-"
+    year = "-"
     
-    category = parts[0] if len(parts) > 0 else "연구"
-    year = parts[-1] if len(parts) > 3 else "-"
-    publisher = parts[-2] if len(parts) > 2 else "-"
-    
-    if len(parts) > 3:
-        title = "_".join(parts[1:-2])
-    elif len(parts) > 1:
-        title = parts[1]
-    else:
-        title = name_without_ext
-        
-    return {
-        'name': name_without_ext,
-        'category': category,
-        'title': title,
-        'publisher': publisher,
-        'year': year,
-        'file': filename
-    }
+    if len(parts) > 1:
+        category = parts[0]
+        title = "_".join(parts[1:])
+    if len(parts) > 2:
+        publisher = parts[-2]
+        year = parts[-1]
+    return {'name': name_without_ext, 'category': category, 'title': title, 'publisher': publisher, 'year': year, 'file': filename}
 
 def scan_local_papers():
     published_list = []
@@ -57,56 +48,39 @@ def scan_local_papers():
     if is_server:
         blobs = bucket.list_blobs(prefix='static/papers/')
         for blob in blobs:
-            parts = blob.name.split('/')
-            if len(parts) < 4: continue 
+            if not blob.name.lower().endswith(('.pdf', '.png')): continue
+            file_name = blob.name.split('/')[-1]
             
-            category_folder = parts[2]
-            file_name = parts[-1]
-            if not file_name or '.' not in file_name: continue
-            
-            paper_info = parse_paper_filename(file_name)
-            
-            if category_folder == 'published':
-                published_list.append(paper_info)
-            elif category_folder == 'wip':
-                wip_list.append(paper_info)
+            # published는 .pdf, wip은 .png
+            if '/published/' in blob.name and file_name.lower().endswith('.pdf'):
+                published_list.append(parse_paper_filename(file_name))
+            elif '/wip/' in blob.name and file_name.lower().endswith('.png'):
+                wip_list.append(parse_paper_filename(file_name))
     else:
-        # 로컬 스캔 로직
         pub_dir = os.path.join(BASE_PATH, 'papers', 'published')
         wip_dir = os.path.join(BASE_PATH, 'papers', 'wip')
-        
         if os.path.exists(pub_dir):
             for f in os.listdir(pub_dir):
-                if f.lower().endswith('.pdf'):
-                    published_list.append(parse_paper_filename(f))
-                    
+                if f.lower().endswith('.pdf'): published_list.append(parse_paper_filename(f))
         if os.path.exists(wip_dir):
             for f in os.listdir(wip_dir):
-                if f.lower().endswith('.png') or f.lower().endswith('.jpg') or f.lower().endswith('.pdf'):
-                    wip_list.append(parse_paper_filename(f))
-                    
+                if f.lower().endswith('.png'): wip_list.append(parse_paper_filename(f))
     return published_list, wip_list
 
 def scan_local_books():
     books = []
-    
     if is_server:
-        blobs = bucket.list_blobs(prefix='static/books/')
+        blobs = bucket.list_blobs(prefix='static/books/pending/')
         for blob in blobs:
-            parts = blob.name.split('/')
-            if len(parts) < 4: continue 
-            file_name = parts[-1]
-            if not file_name or '.' not in file_name: continue
-            
-            books.append({'title': os.path.splitext(file_name)[0], 'file': file_name})
+            if blob.name.lower().endswith('.pdf'):
+                file_name = blob.name.split('/')[-1]
+                books.append({'title': file_name.replace('.pdf', ''), 'file': file_name})
     else:
-        pending_dir = os.path.join(BASE_PATH, 'books', 'pending')
-        
-        if os.path.exists(pending_dir):
-            for f in os.listdir(pending_dir):
+        books_dir = os.path.join(BASE_PATH, 'books', 'pending')
+        if os.path.exists(books_dir):
+            for f in os.listdir(books_dir):
                 if f.lower().endswith('.pdf'):
-                    books.append({'title': os.path.splitext(f)[0], 'file': f})
-                    
+                    books.append({'title': f.replace('.pdf', ''), 'file': f})
     return books
 
 @app.route('/')
@@ -123,32 +97,19 @@ def get_papers_data():
 def get_books_data():
     return jsonify({'books': scan_local_books()})
 
-@app.route('/api/credentials-list')
-def get_credentials():
-    folder_path = os.path.join(app.root_path, 'static', 'credentials')
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    files = [f for f in os.listdir(folder_path) if f.lower().endswith('.png')]
-    return jsonify({'files': files})
-
 @app.route('/api/content/<string:filename>', methods=['GET'])
 def get_sub_content(filename):
-    allowed_files = [
-        'academic_papers.html', 'books_and_essays.html', 'government_projects.html', 
-        'agent_academy.html', 'counseling_academy.html', 'director_identity.html'
-    ]
-    if filename not in allowed_files:
-        return "접근 불가", 403
     return render_template(filename)
 
 @app.route('/api/academy-video/<filename>')
 def get_academy_video(filename):
+    # 폴더명을 academy_videos로 통일
+    path = f"static/academy_videos/{filename}"
     if is_server:
-        blob = bucket.blob(f"static/academy_videos/{filename}")
+        blob = bucket.blob(path)
         url = blob.generate_signed_url(expiration=timedelta(minutes=60))
         return jsonify({'url': url})
-    else:
-        return jsonify({'url': f"/static/academy_videos/{filename}"})
+    return jsonify({'url': f"/{path}"})
 
 application = app
 
