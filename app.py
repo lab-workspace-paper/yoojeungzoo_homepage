@@ -17,52 +17,98 @@ is_server = os.environ.get("IS_SERVER", "False") == "True"
 BUCKET_NAME = "yoojeongzoo-library-storage"
 
 if is_server:
-    # 서버 환경: 클라우드 스토리지 객체 생성
     storage_client = storage.Client()
     bucket = storage_client.bucket(BUCKET_NAME)
-    BASE_PATH = "." # GCS 내 폴더 경로 기준점
+    BASE_PATH = "."
 else:
-    # 로컬 환경: 기존 G드라이브 경로 유지
     storage_client = None
     bucket = None
+    # 로컬 환경: 기존 G드라이브 경로 유지
     BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
 
+def parse_paper_filename(filename):
+    name_without_ext = os.path.splitext(filename)[0]
+    parts = name_without_ext.split('_')
+    
+    category = parts[0] if len(parts) > 0 else "연구"
+    year = parts[-1] if len(parts) > 3 else "-"
+    publisher = parts[-2] if len(parts) > 2 else "-"
+    
+    if len(parts) > 3:
+        title = "_".join(parts[1:-2])
+    elif len(parts) > 1:
+        title = parts[1]
+    else:
+        title = name_without_ext
+        
+    return {
+        'name': name_without_ext,
+        'category': category,
+        'title': title,
+        'publisher': publisher,
+        'year': year,
+        'file': filename
+    }
+
 def scan_local_papers():
+    published_list = []
+    wip_list = []
+    
     if is_server:
-        published_list = []
-        wip_list = []
-        # 'papers/'로 시작하는 모든 blob을 가져옵니다.
-        blobs = bucket.list_blobs(prefix='papers/')
+        blobs = bucket.list_blobs(prefix='static/papers/')
         for blob in blobs:
             parts = blob.name.split('/')
-            if len(parts) < 3: continue # 'papers/category/filename' 구조 확인
+            if len(parts) < 4: continue 
             
-            category = parts[1] # published 또는 wip
+            category_folder = parts[2]
             file_name = parts[-1]
             if not file_name or '.' not in file_name: continue
             
-            paper_info = {'title': os.path.splitext(file_name)[0], 'file': file_name}
-            if category == 'published':
+            paper_info = parse_paper_filename(file_name)
+            
+            if category_folder == 'published':
                 published_list.append(paper_info)
-            elif category == 'wip':
+            elif category_folder == 'wip':
                 wip_list.append(paper_info)
-        return published_list, wip_list
-    # (else: 로컬 로직은 그대로 유지)
+    else:
+        # 로컬 스캔 로직
+        pub_dir = os.path.join(BASE_PATH, 'papers', 'published')
+        wip_dir = os.path.join(BASE_PATH, 'papers', 'wip')
+        
+        if os.path.exists(pub_dir):
+            for f in os.listdir(pub_dir):
+                if f.lower().endswith('.pdf'):
+                    published_list.append(parse_paper_filename(f))
+                    
+        if os.path.exists(wip_dir):
+            for f in os.listdir(wip_dir):
+                if f.lower().endswith('.png') or f.lower().endswith('.jpg') or f.lower().endswith('.pdf'):
+                    wip_list.append(parse_paper_filename(f))
+                    
+    return published_list, wip_list
 
 def scan_local_books():
+    books = []
+    
     if is_server:
-        books = []
-        # 'books/' 하위의 'pending/' 등을 스캔
-        blobs = bucket.list_blobs(prefix='books/')
+        blobs = bucket.list_blobs(prefix='static/books/')
         for blob in blobs:
             parts = blob.name.split('/')
-            if len(parts) < 3: continue 
+            if len(parts) < 4: continue 
             file_name = parts[-1]
             if not file_name or '.' not in file_name: continue
             
             books.append({'title': os.path.splitext(file_name)[0], 'file': file_name})
-        return books
-    
+    else:
+        pending_dir = os.path.join(BASE_PATH, 'books', 'pending')
+        
+        if os.path.exists(pending_dir):
+            for f in os.listdir(pending_dir):
+                if f.lower().endswith('.pdf'):
+                    books.append({'title': os.path.splitext(f)[0], 'file': f})
+                    
+    return books
+
 @app.route('/')
 @app.route('/ko')
 def index_ko():
@@ -79,12 +125,9 @@ def get_books_data():
 
 @app.route('/api/credentials-list')
 def get_credentials():
-    # static/credentials 폴더 경로
     folder_path = os.path.join(app.root_path, 'static', 'credentials')
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
-    
-    # png 파일만 리스트업
     files = [f for f in os.listdir(folder_path) if f.lower().endswith('.png')]
     return jsonify({'files': files})
 
@@ -101,18 +144,13 @@ def get_sub_content(filename):
 @app.route('/api/academy-video/<filename>')
 def get_academy_video(filename):
     if is_server:
-        # GCS 내의 영상 경로 (파일이 static/academy_video/ 아래에 있어야 함)
-        blob = bucket.blob(f"static/academy_video/{filename}")
-        # 서명된 URL 생성 (60분간 유효)
+        blob = bucket.blob(f"static/academy_videos/{filename}")
         url = blob.generate_signed_url(expiration=timedelta(minutes=60))
         return jsonify({'url': url})
     else:
-        # 로컬: 기존 static 경로 반환
-        return jsonify({'url': f"/static/academy_video/{filename}"})
+        return jsonify({'url': f"/static/academy_videos/{filename}"})
 
-# Gunicorn이 호출할 수 있도록 명시
 application = app
 
 if __name__ == '__main__':
-    # 로컬 실행 시
     app.run(host='0.0.0.0', port=port)
