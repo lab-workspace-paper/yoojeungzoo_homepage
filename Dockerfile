@@ -7,14 +7,15 @@ WORKDIR /app
 # 필수 빌드 도구 설치 및 캐시 정리
 RUN apt-get update && apt-get install -y gcc python3-dev && rm -rf /var/lib/apt/lists/*
 
-# 종속성 파일 복사 및 설치 (레이어 캐싱 활용)
+# 종속성 파일 복사 및 설치
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 데이터 폴더(static)를 제외한 핵심 코드만 명시적으로 복사
-# 이렇게 하면 static 폴더 내부의 대용량 자료가 빌드에 포함되지 않습니다
+# 핵심 코드 및 디자인 리소스(static, templates) 전체 복사
 COPY app.py .
 COPY templates/ ./templates/
+# 여기에 static 폴더를 포함하도록 명령어를 추가합니다
+COPY static/ ./static/
 
-# Gunicorn 서버 실행 (시간 제한 없음)
+# Gunicorn 서버 실행
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--timeout", "0", "app:application"]
