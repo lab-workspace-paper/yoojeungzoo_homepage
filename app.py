@@ -18,8 +18,12 @@ is_server = not os.path.exists(LOCAL_BASE_PATH)
 BUCKET_NAME = "yoojeongzoo-library-storage"
 
 if is_server:
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(BUCKET_NAME)
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(BUCKET_NAME)
+    except Exception as e:
+        storage_client = None
+        bucket = None
 else:
     storage_client = None
     bucket = None
@@ -51,35 +55,40 @@ def parse_paper_filename(filename):
 def scan_local_papers():
     published, wip = [], []
     if is_server:
-        try:
-            if bucket is None:
-                raise ValueError("GCS 버킷 객체가 생성되지 않았습니다.")
-                
-            blobs = bucket.list_blobs(prefix='static/papers/')
-            blob_count = 0
-            for blob in blobs:
-                blob_count += 1
-                file_name = blob.name.split('/')[-1]
-                if not file_name or '.' not in file_name: continue
-                
-                if '/published/' in blob.name and file_name.lower().endswith('.pdf'):
-                    published.append(parse_paper_filename(file_name))
-                elif '/wip/' in blob.name and file_name.lower().endswith('.png'):
-                    wip.append(parse_paper_filename(file_name))
-            
-            # 클라우드에서 파일을 1개도 못 찾았을 경우 화면에 원인 출력
-            if blob_count == 0:
-                published.append({
-                    'name': 'debug', 'category': '시스템 진단', 
-                    'title': 'GCS 통신은 성공했으나, static/papers/ 하위에서 파일을 1개도 찾지 못했습니다.',
-                    'publisher': BUCKET_NAME, 'year': '경로점검', 'file': ''
-                })
-        except Exception as e:
-            # 권한 오류 등 치명적 에러 발생 시 화면에 에러 내용 출력
+        if not bucket:
             published.append({
-                'name': 'error', 'category': '오류 발생', 
-                'title': f'클라우드 권한/통신 에러가 발생했습니다: {str(e)}',
-                'publisher': '접근불가', 'year': '에러', 'file': ''
+                'name': 'debug', 'category': '진단',
+                'title': '스토리지 버킷 연결 실패 (자격증명 확인 필요)',
+                'publisher': '서버', 'year': '2026', 'file': ''
+            })
+            return published, wip
+        
+        try:
+            blobs = bucket.list_blobs(prefix='static/papers/')
+            blob_list = list(blobs)
+            
+            if not blob_list:
+                sample_blobs = list(bucket.list_blobs(max_results=2))
+                sample_names = ", ".join([b.name for b in sample_blobs]) if sample_blobs else "버킷 내부가 완전히 비어있음"
+                published.append({
+                    'name': 'debug', 'category': '경로 진단',
+                    'title': f'GCS 연결 성공하나 static/papers/에 파일 없음. 버킷 내 실제 최상위 파일 샘플: [{sample_names}]',
+                    'publisher': 'GCS', 'year': '2026', 'file': ''
+                })
+            else:
+                for blob in blob_list:
+                    file_name = blob.name.split('/')[-1]
+                    if not file_name or '.' not in file_name: continue
+                    
+                    if '/published/' in blob.name and file_name.lower().endswith('.pdf'):
+                        published.append(parse_paper_filename(file_name))
+                    elif '/wip/' in blob.name and file_name.lower().endswith('.png'):
+                        wip.append(parse_paper_filename(file_name))
+        except Exception as e:
+            published.append({
+                'name': 'debug', 'category': '권한 오류',
+                'title': f'GCS 접근 중 예외 발생: {str(e)}',
+                'publisher': '서버', 'year': '2026', 'file': ''
             })
     else:
         pub_dir = os.path.join(LOCAL_BASE_PATH, 'papers', 'published')
@@ -97,19 +106,19 @@ def scan_local_papers():
 def scan_local_books():
     books = []
     if is_server:
-        try:
-            blobs = bucket.list_blobs(prefix='static/books/pending/')
-            blob_count = 0
-            for blob in blobs:
-                blob_count += 1
-                file_name = blob.name.split('/')[-1]
-                if file_name.lower().endswith('.pdf'):
-                    books.append({'title': file_name.replace('.pdf', ''), 'file': file_name})
-            
-            if blob_count == 0:
-                books.append({'title': 'GCS 통신 성공. 단, static/books/pending/ 경로에 파일이 없습니다.', 'file': ''})
-        except Exception as e:
-            books.append({'title': f'클라우드 권한 에러: {str(e)}', 'file': ''})
+        if bucket:
+            try:
+                blobs = bucket.list_blobs(prefix='static/books/pending/')
+                blob_list = list(blobs)
+                if not blob_list:
+                    books.append({'title': '진단_GCS static/books/pending/ 경로에 파일 없음_2026_확인', 'file': ''})
+                else:
+                    for blob in blob_list:
+                        file_name = blob.name.split('/')[-1]
+                        if file_name.lower().endswith('.pdf'):
+                            books.append({'title': file_name.replace('.pdf', ''), 'file': file_name})
+            except Exception as e:
+                books.append({'title': f'진단_GCS 서적 권한 오류 발생_{str(e)}_오류', 'file': ''})
     else:
         books_dir = os.path.join(LOCAL_BASE_PATH, 'books', 'pending')
         if os.path.exists(books_dir):
