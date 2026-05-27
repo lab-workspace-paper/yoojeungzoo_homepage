@@ -12,7 +12,6 @@ CORS(app)
 
 port = int(os.environ.get("PORT", 8080))
 
-# [핵심] 환경 변수 대신 물리적 경로로 로컬/서버 완벽 자동 감지
 LOCAL_BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
 is_server = not os.path.exists(LOCAL_BASE_PATH)
 
@@ -51,19 +50,38 @@ def parse_paper_filename(filename):
 
 def scan_local_papers():
     published, wip = [], []
-    if is_server and bucket:
-        # 클라우드 환경: GCS 스토리지 탐색
-        blobs = bucket.list_blobs(prefix='static/papers/')
-        for blob in blobs:
-            file_name = blob.name.split('/')[-1]
-            if not file_name or '.' not in file_name: continue
+    if is_server:
+        try:
+            if bucket is None:
+                raise ValueError("GCS 버킷 객체가 생성되지 않았습니다.")
+                
+            blobs = bucket.list_blobs(prefix='static/papers/')
+            blob_count = 0
+            for blob in blobs:
+                blob_count += 1
+                file_name = blob.name.split('/')[-1]
+                if not file_name or '.' not in file_name: continue
+                
+                if '/published/' in blob.name and file_name.lower().endswith('.pdf'):
+                    published.append(parse_paper_filename(file_name))
+                elif '/wip/' in blob.name and file_name.lower().endswith('.png'):
+                    wip.append(parse_paper_filename(file_name))
             
-            if '/published/' in blob.name and file_name.lower().endswith('.pdf'):
-                published.append(parse_paper_filename(file_name))
-            elif '/wip/' in blob.name and file_name.lower().endswith('.png'):
-                wip.append(parse_paper_filename(file_name))
+            # 클라우드에서 파일을 1개도 못 찾았을 경우 화면에 원인 출력
+            if blob_count == 0:
+                published.append({
+                    'name': 'debug', 'category': '시스템 진단', 
+                    'title': 'GCS 통신은 성공했으나, static/papers/ 하위에서 파일을 1개도 찾지 못했습니다.',
+                    'publisher': BUCKET_NAME, 'year': '경로점검', 'file': ''
+                })
+        except Exception as e:
+            # 권한 오류 등 치명적 에러 발생 시 화면에 에러 내용 출력
+            published.append({
+                'name': 'error', 'category': '오류 발생', 
+                'title': f'클라우드 권한/통신 에러가 발생했습니다: {str(e)}',
+                'publisher': '접근불가', 'year': '에러', 'file': ''
+            })
     else:
-        # 로컬 환경: G드라이브 물리 탐색
         pub_dir = os.path.join(LOCAL_BASE_PATH, 'papers', 'published')
         wip_dir = os.path.join(LOCAL_BASE_PATH, 'papers', 'wip')
         if os.path.exists(pub_dir):
@@ -78,12 +96,20 @@ def scan_local_papers():
 
 def scan_local_books():
     books = []
-    if is_server and bucket:
-        blobs = bucket.list_blobs(prefix='static/books/pending/')
-        for blob in blobs:
-            file_name = blob.name.split('/')[-1]
-            if file_name.lower().endswith('.pdf'):
-                books.append({'title': file_name.replace('.pdf', ''), 'file': file_name})
+    if is_server:
+        try:
+            blobs = bucket.list_blobs(prefix='static/books/pending/')
+            blob_count = 0
+            for blob in blobs:
+                blob_count += 1
+                file_name = blob.name.split('/')[-1]
+                if file_name.lower().endswith('.pdf'):
+                    books.append({'title': file_name.replace('.pdf', ''), 'file': file_name})
+            
+            if blob_count == 0:
+                books.append({'title': 'GCS 통신 성공. 단, static/books/pending/ 경로에 파일이 없습니다.', 'file': ''})
+        except Exception as e:
+            books.append({'title': f'클라우드 권한 에러: {str(e)}', 'file': ''})
     else:
         books_dir = os.path.join(LOCAL_BASE_PATH, 'books', 'pending')
         if os.path.exists(books_dir):
