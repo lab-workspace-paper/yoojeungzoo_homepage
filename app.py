@@ -28,14 +28,15 @@ else:
 
 def scan_local_papers():
     if is_server:
-        # 서버 구동 시: GCS 버킷 스캔
+        # 서버 구동 시: GCS 버킷 내 'papers/' 폴더를 직접 스캔
         published_list = []
         wip_list = []
-        blobs = bucket.list_blobs(prefix='static/papers/')
+        blobs = bucket.list_blobs(prefix='papers/')
         for blob in blobs:
             file_name = blob.name.split('/')[-1]
-            if not file_name: continue
+            if not file_name or '.' not in file_name: continue
             
+            # 버킷의 papers/ 폴더 하위 구조에 따라 판별
             if file_name.upper().endswith('.PDF') and 'published' in blob.name:
                 name_without_ext = os.path.splitext(file_name)[0]
                 parts = name_without_ext.split('_')
@@ -56,7 +57,7 @@ def scan_local_papers():
                 })
         return published_list, wip_list
     else:
-        # 로컬 구동 시: 기존 로직 유지
+        # 로컬 구동 시: 기존 로직 완벽 유지
         published_dir = os.path.join(BASE_PATH, 'papers', 'published')
         wip_dir = os.path.join(BASE_PATH, 'papers', 'wip')
         published_list = []
@@ -87,9 +88,9 @@ def scan_local_papers():
 
 def scan_local_books():
     if is_server:
-        # 서버 구동 시: GCS 버킷 내 books 폴더 스캔
+        # 서버 구동 시: GCS 버킷 내 'books/' 폴더를 직접 스캔
         books = []
-        blobs = bucket.list_blobs(prefix='static/books/')
+        blobs = bucket.list_blobs(prefix='books/')
         for blob in blobs:
             if blob.name.upper().endswith('.PDF'):
                 file_name = blob.name.split('/')[-1]
@@ -97,7 +98,7 @@ def scan_local_books():
                 books.append({'title': name_without_ext, 'file': file_name})
         return books
     else:
-        # 로컬 구동 시: 기존 로직 유지
+        # 로컬 구동 시: 기존 로직 완벽 유지
         books_dir = os.path.join(BASE_PATH, 'books')
         books = []
         if os.path.exists(books_dir):
