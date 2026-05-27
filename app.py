@@ -19,7 +19,7 @@ if is_server:
     # 서버 환경: 클라우드 스토리지 객체 생성
     storage_client = storage.Client()
     bucket = storage_client.bucket(BUCKET_NAME)
-    BASE_PATH = "static" # GCS 내 폴더 경로 기준점
+    BASE_PATH = "." # GCS 내 폴더 경로 기준점
 else:
     # 로컬 환경: 기존 G드라이브 경로 유지
     storage_client = None
