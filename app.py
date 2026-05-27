@@ -11,38 +11,34 @@ app = Flask(__name__)
 CORS(app)
 
 port = int(os.environ.get("PORT", 8080))
-
-LOCAL_BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
-is_server = not os.path.exists(LOCAL_BASE_PATH)
-
 BUCKET_NAME = "yoojeongzoo-library-storage"
+LOCAL_BASE_PATH = r"G:\내 드라이브\pai_homepage\static"
+
+# 로컬인지 서버인지 판단 (K_SERVICE는 클라우드 런에만 존재하는 환경변수)
+is_server = 'K_SERVICE' in os.environ
 
 if is_server:
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(BUCKET_NAME)
     except Exception as e:
-        storage_client = None
         bucket = None
+        bucket_error = str(e)
 else:
-    storage_client = None
     bucket = None
 
 def parse_paper_filename(filename):
     name_without_ext = os.path.splitext(filename)[0]
     parts = name_without_ext.split('_')
-    
     category = parts[0] if len(parts) > 0 else "연구"
     year = parts[-1] if len(parts) > 3 else "-"
     publisher = parts[-2] if len(parts) > 2 else "-"
-    
     if len(parts) > 3:
         title = "_".join(parts[1:-2])
     elif len(parts) > 1:
         title = parts[1]
     else:
         title = name_without_ext
-        
     return {
         'name': name_without_ext,
         'category': category,
@@ -54,43 +50,32 @@ def parse_paper_filename(filename):
 
 def scan_local_papers():
     published, wip = [], []
+
     if is_server:
-        if not bucket:
-            published.append({
-                'name': 'debug', 'category': '진단',
-                'title': '스토리지 버킷 연결 실패 (자격증명 확인 필요)',
-                'publisher': '서버', 'year': '2026', 'file': ''
-            })
-            return published, wip
-        
-        try:
-            blobs = bucket.list_blobs(prefix='static/papers/')
-            blob_list = list(blobs)
-            
-            if not blob_list:
-                sample_blobs = list(bucket.list_blobs(max_results=2))
-                sample_names = ", ".join([b.name for b in sample_blobs]) if sample_blobs else "버킷 내부가 완전히 비어있음"
-                published.append({
-                    'name': 'debug', 'category': '경로 진단',
-                    'title': f'GCS 연결 성공하나 static/papers/에 파일 없음. 버킷 내 실제 최상위 파일 샘플: [{sample_names}]',
-                    'publisher': 'GCS', 'year': '2026', 'file': ''
-                })
-            else:
-                for blob in blob_list:
-                    file_name = blob.name.split('/')[-1]
-                    if not file_name or '.' not in file_name: continue
-                    
-                    if '/published/' in blob.name and file_name.lower().endswith('.pdf'):
-                        published.append(parse_paper_filename(file_name))
-                    elif '/wip/' in blob.name and file_name.lower().endswith('.png'):
-                        wip.append(parse_paper_filename(file_name))
-        except Exception as e:
-            published.append({
-                'name': 'debug', 'category': '권한 오류',
-                'title': f'GCS 접근 중 예외 발생: {str(e)}',
-                'publisher': '서버', 'year': '2026', 'file': ''
-            })
+        # === 서버 전용 로직 (자가 진단 가동) ===
+        if bucket:
+            try:
+                blobs = list(bucket.list_blobs(prefix='static/papers/'))
+                if not blobs:
+                    published.append(parse_paper_filename("시스템진단_static/papers/ 폴더가 비어있거나 경로가 다름_오류_2026.pdf"))
+                else:
+                    for blob in blobs:
+                        file_name = blob.name.split('/')[-1]
+                        if not file_name or '.' not in file_name: continue
+                        if '/published/' in blob.name and file_name.lower().endswith('.pdf'):
+                            published.append(parse_paper_filename(file_name))
+                        elif '/wip/' in blob.name and file_name.lower().endswith('.png'):
+                            wip.append(parse_paper_filename(file_name))
+
+                    if len(published) == 0 and len(wip) == 0:
+                        sample = ", ".join([b.name.split('/')[-1] for b in blobs[:2]])
+                        published.append(parse_paper_filename(f"시스템진단_조건에 맞는 파일 없음 샘플 [{sample}]_오류_2026.pdf"))
+            except Exception as e:
+                published.append(parse_paper_filename(f"시스템진단_GCS 탐색오류[{str(e)}]_권한에러_2026.pdf"))
+        else:
+            published.append(parse_paper_filename(f"시스템진단_구글 클라우드 접근 권한(IAM) 누락 [{bucket_error}]_권한에러_2026.pdf"))
     else:
+        # === 로컬 전용 로직 (진단 메시지 일체 없음, 기존 로직 완벽 유지) ===
         pub_dir = os.path.join(LOCAL_BASE_PATH, 'papers', 'published')
         wip_dir = os.path.join(LOCAL_BASE_PATH, 'papers', 'wip')
         if os.path.exists(pub_dir):
@@ -101,25 +86,28 @@ def scan_local_papers():
             for f in os.listdir(wip_dir):
                 if f.lower().endswith('.png'):
                     wip.append(parse_paper_filename(f))
+
     return published, wip
 
 def scan_local_books():
     books = []
     if is_server:
+        # === 서버 전용 로직 ===
         if bucket:
             try:
-                blobs = bucket.list_blobs(prefix='static/books/pending/')
-                blob_list = list(blobs)
-                if not blob_list:
-                    books.append({'title': '진단_GCS static/books/pending/ 경로에 파일 없음_2026_확인', 'file': ''})
-                else:
-                    for blob in blob_list:
-                        file_name = blob.name.split('/')[-1]
-                        if file_name.lower().endswith('.pdf'):
-                            books.append({'title': file_name.replace('.pdf', ''), 'file': file_name})
+                blobs = list(bucket.list_blobs(prefix='static/books/'))
+                for blob in blobs:
+                    file_name = blob.name.split('/')[-1]
+                    if file_name.lower().endswith('.pdf'):
+                        books.append({'title': file_name.replace('.pdf', ''), 'file': file_name})
+                if not books:
+                    books.append({'title': '시스템진단_서적 폴더에 일치하는 PDF 파일 없음_에러_2026', 'file': ''})
             except Exception as e:
-                books.append({'title': f'진단_GCS 서적 권한 오류 발생_{str(e)}_오류', 'file': ''})
+                books.append({'title': f'시스템진단_서적 탐색 오류[{str(e)}]', 'file': ''})
+        else:
+            books.append({'title': '시스템진단_GCS 접근 권한 누락', 'file': ''})
     else:
+        # === 로컬 전용 로직 (진단 메시지 없음) ===
         books_dir = os.path.join(LOCAL_BASE_PATH, 'books', 'pending')
         if os.path.exists(books_dir):
             for f in os.listdir(books_dir):
