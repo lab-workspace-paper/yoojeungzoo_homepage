@@ -60,7 +60,7 @@
     </div>
 
     <script>
-        // [중요] 깃허브용 정적 데이터: 이곳에 논문 정보를 직접 입력하십시오.
+        // 1. 여기에 실제 논문 정보를 정확히 기입하십시오.
         const staticPublishedPapers = [
             { category: "행정철학", title: "디지털 지능형 거버넌스 연구", publisher: "한국행정학보", year: "2026", name: "paper_sample" }
         ];
@@ -69,33 +69,35 @@
             { category: "보안과제", title: "주 52시간 근로제 효과 분석", name: "wip_sample" }
         ];
 
+        // 2. 렌더링 함수를 강제로 즉시 실행
         function renderAcademicArchive() {
             const publishedTbody = document.getElementById('published-papers-list');
             const wipTbody = document.getElementById('wip-papers-list');
 
             if (publishedTbody) {
-                publishedTbody.innerHTML = staticPublishedPapers.map((paper, index) => `
-                    <tr class="cursor-pointer hover:bg-gray-800" onclick="alert('PDF 열기: ${paper.name}')">
-                        <td class="font-semibold" style="color: #d4af37;">${paper.category}</td>
-                        <td>${paper.title}</td>
-                        <td>${paper.publisher}</td>
-                        <td>${paper.year}</td>
-                    </tr>
-                `).join('');
+                publishedTbody.innerHTML = staticPublishedPapers.map(paper => `
+                <tr class="cursor-pointer hover:bg-gray-800">
+                    <td class="font-semibold" style="color: #d4af37;">${paper.category}</td>
+                    <td>${paper.title}</td>
+                    <td>${paper.publisher}</td>
+                    <td>${paper.year}</td>
+                </tr>
+            `).join('');
             }
 
             if (wipTbody) {
-                wipTbody.innerHTML = staticWipPapers.map((paper, index) => `
-                    <tr class="cursor-pointer hover:bg-gray-800" onclick="alert('보안 문서: ${paper.title}')">
-                        <td class="font-semibold" style="color: #94a3b8;">${paper.category}</td>
-                        <td class="text-white font-medium">${paper.title}</td>
-                        <td class="text-rose-400 font-mono text-xs">기밀성(Level 3)</td>
-                        <td style="color: #d4af37;">제한 열람 &rarr;</td>
-                    </tr>
-                `).join('');
+                wipTbody.innerHTML = staticWipPapers.map(paper => `
+                <tr class="cursor-pointer hover:bg-gray-800">
+                    <td class="font-semibold" style="color: #94a3b8;">${paper.category}</td>
+                    <td class="text-white font-medium">${paper.title}</td>
+                    <td class="text-rose-400 font-mono text-xs">기밀성(Level 3)</td>
+                    <td style="color: #d4af37;">제한 열람 &rarr;</td>
+                </tr>
+            `).join('');
             }
         }
 
+        // 페이지가 로드되자마자 실행되도록 설정
         renderAcademicArchive();
     </script>
 </body>
