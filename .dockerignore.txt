@@ -1,7 +1,0 @@
-.git
-.gitignore
-static/papers/
-static/books/
-static/images/
-static/academy_videos/
-static/research_projects/
