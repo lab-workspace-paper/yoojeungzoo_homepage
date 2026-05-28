@@ -36,12 +36,12 @@
 
                 <nav class="flex overflow-x-auto whitespace-nowrap space-x-4 w-full lg:w-auto mt-3 pb-2"
                     style="scrollbar-width: none; -ms-overflow-style: none;">
-                    <a onclick="loadSubContent('academic_papers.html')" class="nav-item">연구의 발자취</a>
-                    <a onclick="loadSubContent('books_and_essays.html')" class="nav-item">생각의 뜰</a>
-                    <a onclick="loadSubContent('government_projects.html')" class="nav-item">정책 설계의 뜰</a>
-                    <a onclick="loadSubContent('agent_academy.html')" class="nav-item">AI 교육 아카데미</a>
-                    <a onclick="loadSubContent('counseling_academy.html')" class="nav-item">마음경영 아카데미</a>
-                    <a onclick="loadSubContent('director_identity.html')" class="nav-item">디렉터 프로필</a>
+                    <a onclick="loadSubContent('academic_papers.html')" class="nav-item cursor-pointer">연구의 발자취</a>
+                    <a onclick="loadSubContent('books_and_essays.html')" class="nav-item cursor-pointer">생각의 뜰</a>
+                    <a onclick="loadSubContent('government_projects.html')" class="nav-item cursor-pointer">정책 설계의 뜰</a>
+                    <a onclick="loadSubContent('agent_academy.html')" class="nav-item cursor-pointer">AI 교육 아카데미</a>
+                    <a onclick="loadSubContent('counseling_academy.html')" class="nav-item cursor-pointer">마음경영 아카데미</a>
+                    <a onclick="loadSubContent('director_identity.html')" class="nav-item cursor-pointer">디렉터 프로필</a>
                 </nav>
             </div>
         </header>
@@ -108,17 +108,12 @@
 
         function showDashboard(event) {
             if (event) { event.preventDefault(); event.stopPropagation(); }
-
             const welcome = document.getElementById('welcome-screen');
             welcome.style.setProperty('display', 'none', 'important');
-
             const dashboard = document.getElementById('main-dashboard');
             dashboard.classList.add('active');
-
             window.scrollTo(0, 0);
             isDashboardActive = true;
-
-            // 핵심: 대시보드 활성화 직후 '디렉터 프로필'을 자동 로드
             loadSubContent('director_identity.html');
         }
 
@@ -130,14 +125,16 @@
             else { header.classList.remove('header-visible'); }
         });
 
+        // 수정된 정적 로딩 로직
         function loadSubContent(fileName) {
             const container = document.getElementById('pai-sub-content');
             const body = document.getElementById('sub-content-body');
             const header = document.getElementById('pai-sticky-header');
 
-            fetch(`/api/content/${fileName}`)
+            // 깃허브 정적 페이지 경로인 /templates/ 파일로 직접 fetch 요청
+            fetch(`/templates/${fileName}`)
                 .then(response => {
-                    if (!response.ok) throw new Error('네트워크 통합 연동에 실패하였습니다.');
+                    if (!response.ok) throw new Error('파일을 찾을 수 없습니다.');
                     return response.text();
                 })
                 .then(html => {
@@ -145,29 +142,14 @@
                     container.classList.remove('hidden');
                     header.classList.add('header-visible');
 
-                    const scripts = body.getElementsByTagName('script');
-                    for (let i = 0; i < scripts.length; i++) {
-                        const script = document.createElement('script');
-                        script.text = scripts[i].innerHTML;
-                        document.body.appendChild(script).parentNode.removeChild(script);
-                    }
-
-                    setTimeout(() => {
-                        const headerHeight = header.offsetHeight || 96;
-                        const academicGap = 24;
-                        const totalOffset = headerHeight + academicGap;
-                        const containerRect = container.getBoundingClientRect();
-                        const absoluteContainerTop = containerRect.top + window.pageYOffset;
-
-                        window.scrollTo({
-                            top: absoluteContainerTop - totalOffset,
-                            behavior: 'smooth'
-                        });
-                    }, 50);
+                    window.scrollTo({
+                        top: container.offsetTop - (header.offsetHeight || 96) - 24,
+                        behavior: 'smooth'
+                    });
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    body.innerHTML = `<p class="text-red-500 serif text-left py-8 px-6">콘텐츠를 불러오는 중 오류가 발생했습니다.</p>`;
+                    body.innerHTML = `<p class="text-red-500 serif text-left py-8 px-6">콘텐츠 파일을 불러오는 중 오류가 발생했습니다. (경로 확인 요망)</p>`;
                     container.classList.remove('hidden');
                 });
         }
