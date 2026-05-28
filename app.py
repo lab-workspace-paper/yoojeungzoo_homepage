@@ -51,27 +51,34 @@ def parse_paper_filename(filename):
 
 def scan_local_papers():
     published, wip = [], []
-
-    if is_server:
-        # === 서버(클라우드) 전용 로직: 경로를 강제로 고정하지 않고 전체 스캔 ===
-        if bucket:
-            try:
-                blobs = list(bucket.list_blobs()) # 버킷 전체 스캔
+    if is_server and bucket:
+        try:
+            blobs = list(bucket.list_blobs())
+            # 진단용: 전체 파일 목록 추출
+            all_files = [b.name for b in blobs]
+            
+            # 파일이 없으면 진단 메시지 삽입
+            if not all_files:
+                published.append({'name': '진단', 'category': '오류', 'title': '버킷이 비어있음', 'publisher': '-', 'year': '-', 'file': ''})
+            else:
+                found = False
                 for blob in blobs:
                     file_name = blob.name.split('/')[-1]
-                    if not file_name or '.' not in file_name: continue
-                    
-                    # 문자열 포함 여부로만 판별하여 경로 오류 원천 차단
                     if 'published' in blob.name and file_name.lower().endswith('.pdf'):
                         published.append(parse_paper_filename(file_name))
+                        found = True
                     elif 'wip' in blob.name and file_name.lower().endswith('.png'):
                         wip.append(parse_paper_filename(file_name))
-            except Exception as e:
-                # 에러 발생 시 로그만 기록하고 로컬처럼 조용히 빈 리스트 반환
-                print(f"GCS Scan Error: {e}")
-        
+                        found = True
+                
+                # 파일은 있는데 규칙에 안 맞아서 안 나올 경우 진단 결과 출력
+                if not found:
+                    published.append({'name': '진단', 'category': '파일목록', 'title': f'찾은 파일들: {", ".join(all_files[:3])}', 'publisher': '-', 'year': '-', 'file': ''})
+                    
+        except Exception as e:
+            published.append({'name': '진단', 'category': '예외', 'title': str(e), 'publisher': '-', 'year': '-', 'file': ''})
     else:
-        # === 로컬(박사님 기존 로직 완벽 보존) ===
+        # 로컬 로직
         pub_dir = os.path.join(LOCAL_BASE_PATH, 'papers', 'published')
         wip_dir = os.path.join(LOCAL_BASE_PATH, 'papers', 'wip')
         if os.path.exists(pub_dir):
@@ -82,7 +89,6 @@ def scan_local_papers():
             for f in os.listdir(wip_dir):
                 if f.lower().endswith('.png'):
                     wip.append(parse_paper_filename(f))
-
     return published, wip
 
 def scan_local_books():
