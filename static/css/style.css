@@ -13,7 +13,7 @@
     width: 100% !important;
 }
 
-/* index_ko.html과 연동되는 스타일시트*/
+/* index.html과 연동되는 스타일시트*/
 :root {
     --charcoal: #121214;
     --gold: #d4af37;
