@@ -131,8 +131,9 @@
             const body = document.getElementById('sub-content-body');
             const header = document.getElementById('pai-sticky-header');
 
-            // 깃허브 정적 페이지 경로인 /templates/ 파일로 직접 fetch 요청
-            fetch(`/templates/${fileName}`)
+            // 수정: /templates/ 경로를 제거하고 파일명만 요청
+            // 이렇게 하면 깃허브 저장소 루트에 있는 파일을 직접 찾습니다.
+            fetch(`/${fileName}`)
                 .then(response => {
                     if (!response.ok) throw new Error('파일을 찾을 수 없습니다.');
                     return response.text();
@@ -149,7 +150,8 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    body.innerHTML = `<p class="text-red-500 serif text-left py-8 px-6">콘텐츠 파일을 불러오는 중 오류가 발생했습니다. (경로 확인 요망)</p>`;
+                    // 힌트를 제공하여 디버깅 용이성 확보
+                    body.innerHTML = `<p class="text-red-500 serif text-left py-8 px-6">경로 오류: /${fileName} 파일을 찾을 수 없습니다. 파일 위치를 확인하십시오.</p>`;
                     container.classList.remove('hidden');
                 });
         }
