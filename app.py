@@ -21,7 +21,8 @@ is_server = sys.platform != 'win32'
 if is_server:
     try:
         storage_client = storage.Client()
-        bucket = storage_client.bucket(BUCKET_NAME)
+        # bucket() 대신 get_bucket()을 사용하여 존재하지 않는 버킷일 경우 즉시 예외 발생
+        bucket = storage_client.get_bucket(BUCKET_NAME)
     except Exception as e:
         bucket = None
         bucket_error = str(e)
